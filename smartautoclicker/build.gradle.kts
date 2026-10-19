@@ -1,0 +1,201 @@
+// Modified for Yuklick on 2026-10-20. See CHANGELOG.md.
+/*
+ * Copyright (C) 2025 Kevin Buzeau
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+import com.buzbuz.gradle.convention.model.KlickrBuildType
+import com.buzbuz.gradle.convention.model.KlickrFlavour
+import com.buzbuz.gradle.convention.extensions.isBuildForVariant
+import com.buzbuz.gradle.obfuscation.getExtraActualApplicationId
+import org.gradle.api.tasks.Copy
+
+plugins {
+    alias(libs.plugins.buzbuz.androidApplication)
+    alias(libs.plugins.buzbuz.androidUnitTest)
+    alias(libs.plugins.buzbuz.flavour)
+    alias(libs.plugins.buzbuz.obfuscation)
+    alias(libs.plugins.buzbuz.buildParameters)
+    alias(libs.plugins.buzbuz.hilt)
+}
+
+obfuscationConfig {
+    obfuscatedApplication {
+        create("com.buzbuz.smartautoclicker.application.SmartAutoClickerApplication")
+    }
+    obfuscatedComponents {
+        create("com.buzbuz.smartautoclicker.scenarios.ScenarioActivity")
+        create("com.buzbuz.smartautoclicker.SmartAutoClickerService")
+    }
+
+    setup(
+        applicationId = "com.buzbuz.smartautoclicker",
+        appNameResId = "@string/app_name",
+        shouldRandomize = buildParameters.randomizeAppId.typedValue &&
+                project.isBuildForVariant(KlickrFlavour.F_DROID),
+    )
+}
+
+android {
+    namespace = "com.buzbuz.smartautoclicker"
+
+    buildFeatures {
+        viewBinding = true
+        buildConfig = true
+    }
+
+    defaultConfig {
+        applicationId = getExtraActualApplicationId()
+
+        versionCode = 102
+        versionName = "4.1.0"
+    }
+
+    if (project.isBuildForVariant(KlickrFlavour.F_DROID, KlickrBuildType.DEBUG)) {
+        buildTypes {
+            debug {
+                applicationIdSuffix = ".debug"
+            }
+        }
+    }
+
+    // This fork is distributed only for 64-bit ARM Android devices.
+    if (project.isBuildForVariant(KlickrFlavour.F_DROID)) {
+        splits {
+            abi {
+                isEnable = true
+                reset()
+                include("arm64-v8a")
+                isUniversalApk = false
+            }
+        }
+    }
+
+    signingConfigs {
+        create(KlickrBuildType.RELEASE.buildTypeName) {
+            storeFile = file("./smartautoclicker.jks")
+            storePassword = buildParameters.signingStorePassword.typedValue
+            keyAlias = buildParameters.signingKeyAlias.typedValue
+            keyPassword = buildParameters.signingKeyPassword.typedValue
+        }
+    }
+
+    // Text recognition alphabet models downloaded with PlayAssetDelivery
+    if (project.isBuildForVariant(KlickrFlavour.PLAY_STORE)) {
+        assetPacks.addAll(
+            listOf(
+                ":core:smart:detection-models:models:text:arabic",
+                ":core:smart:detection-models:models:text:chinese_simplified",
+                ":core:smart:detection-models:models:text:chinese_traditional",
+                ":core:smart:detection-models:models:text:cyrillic",
+                ":core:smart:detection-models:models:text:devanagari",
+                ":core:smart:detection-models:models:text:japanese",
+                ":core:smart:detection-models:models:text:kannada",
+                ":core:smart:detection-models:models:text:korean",
+                ":core:smart:detection-models:models:text:tamil",
+                ":core:smart:detection-models:models:text:telugu",
+            )
+        )
+    }
+}
+
+// Assign unique versionCodes per ABI for fDroid multi-APK publishing
+if (project.isBuildForVariant(KlickrFlavour.F_DROID)) {
+    androidComponents.onVariants { variant ->
+        variant.outputs.forEach { output ->
+            val abiFilter = output.filters
+                .find { it.filterType == com.android.build.api.variant.FilterConfiguration.FilterType.ABI }
+                ?.identifier
+            val abiVersionCode = when (abiFilter) {
+                "armeabi-v7a" -> 1
+                "arm64-v8a"   -> 2
+                "x86"         -> 3
+                "x86_64"      -> 4
+                else          -> 0  // universal
+            }
+            val baseVersionCode = output.versionCode.get()
+            output.versionCode.set(baseVersionCode * 10_000 + abiVersionCode)
+        }
+    }
+}
+
+// Keep a stable, user-facing filename for the only supported ABI in this fork.
+val yuklickApk by tasks.registering(Copy::class) {
+    dependsOn("packageFDroidDebug")
+    from(layout.buildDirectory.file("outputs/apk/fDroid/debug/smartautoclicker-fDroid-arm64-v8a-debug.apk"))
+    into(layout.buildDirectory.dir("outputs/yuklick"))
+    rename { "Yuklick.apk" }
+}
+tasks.matching { it.name == "assembleFDroidDebug" }.configureEach {
+    finalizedBy(yuklickApk)
+}
+
+// Apply signature convention after declaring the signingConfigs
+apply(plugin = libs.plugins.buzbuz.androidSigning.get().pluginId)
+
+// Only apply gms/firebase plugins if we are building for the play store
+if (project.isBuildForVariant(KlickrFlavour.PLAY_STORE, KlickrBuildType.RELEASE)) {
+    apply(plugin = libs.plugins.buzbuz.crashlytics.get().pluginId)
+}
+
+dependencies {
+    implementation(libs.kotlinx.coroutines.core)
+
+    implementation(libs.androidx.appCompat)
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.datastore)
+    implementation(libs.androidx.recyclerView)
+    implementation(libs.androidx.fragment.ktx)
+
+    implementation(libs.androidx.lifecycle.extensions)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.lifecycle.livedata.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.common.java8)
+
+    implementation(libs.airbnb.lottie)
+    implementation(libs.google.material)
+
+    implementation(project(":core:common:accessibility"))
+    implementation(project(":core:common:actions"))
+    implementation(project(":core:common:base"))
+    implementation(project(":core:common:bitmaps"))
+    implementation(project(":core:common:revenue"))
+    implementation(project(":core:common:review"))
+    implementation(project(":core:common:display"))
+    implementation(project(":core:common:navigation"))
+    implementation(project(":core:common:overlays"))
+    implementation(project(":core:common:permissions"))
+    implementation(project(":core:common:quality"))
+    implementation(project(":core:common:settings"))
+    implementation(project(":core:common:tutorial"))
+    implementation(project(":core:common:ui"))
+    implementation(project(":core:dumb"))
+    implementation(project(":core:smart:debugging"))
+    implementation(project(":core:smart:detection"))
+    implementation(project(":core:smart:domain"))
+    implementation(project(":core:smart:processing"))
+
+    implementation(project(":feature:backup"))
+    implementation(project(":feature:notifications"))
+    implementation(project(":feature:quick-settings-tile"))
+    implementation(project(":feature:revenue"))
+    implementation(project(":feature:review"))
+    implementation(project(":feature:smart-config"))
+    implementation(project(":feature:smart-debugging"))
+    implementation(project(":feature:dumb-config"))
+    implementation(project(":feature:tutorial"))
+}

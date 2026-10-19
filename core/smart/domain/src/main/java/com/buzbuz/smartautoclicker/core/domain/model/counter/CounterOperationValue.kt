@@ -1,0 +1,48 @@
+/*
+ * Copyright (C) 2026 Kevin Buzeau
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package com.buzbuz.smartautoclicker.core.domain.model.counter
+
+import com.buzbuz.smartautoclicker.core.base.identifier.Identifier
+import com.buzbuz.smartautoclicker.core.base.interfaces.Completable
+
+sealed class CounterOperationValue : Completable {
+
+    data class Number(val value: Double): CounterOperationValue() {
+        override fun isComplete(): Boolean = value >= 0
+    }
+
+    data class Counter(val counterName: String): CounterOperationValue() {
+        override fun isComplete(): Boolean = counterName.isNotEmpty()
+    }
+
+    data class Condition(
+        val conditionId: Identifier?,
+        val positionType: PositionType,
+    ): CounterOperationValue() {
+
+        override fun isComplete(): Boolean = conditionId != null
+
+        enum class PositionType {
+            CONDITION_BOTTOM,
+            CONDITION_CENTER_X,
+            CONDITION_CENTER_Y,
+            CONDITION_LEFT,
+            CONDITION_RIGHT,
+            CONDITION_TOP,
+        }
+    }
+}

@@ -1,0 +1,239 @@
+/*
+ * Copyright (C) 2026 Kevin Buzeau
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package com.buzbuz.smartautoclicker.core.processing.tests.processor.state
+
+import com.buzbuz.smartautoclicker.core.base.identifier.Identifier
+import com.buzbuz.smartautoclicker.core.domain.model.AND
+import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
+import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
+import com.buzbuz.smartautoclicker.core.processing.data.processor.state.CooldownsState
+
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+
+class CooldownsStateTests {
+
+    private lateinit var cooldownsState: CooldownsState
+
+    @Before
+    fun setUp() {
+        cooldownsState = CooldownsState()
+    }
+
+    private fun newScreenEvent(id: Long, cooldownMs: Long = 0L) = ScreenEvent(
+        id = Identifier(databaseId = id),
+        scenarioId = Identifier(databaseId = 1L),
+        name = "TestEvent",
+        conditionOperator = AND,
+        actions = emptyList(),
+        conditions = emptyList(),
+        enabledOnStart = true,
+        priority = 0,
+        keepDetecting = false,
+        cooldownMs = cooldownMs,
+    )
+
+    // ---- startCooldownIfNeeded ----
+
+    @Test
+    fun startCooldownIfNeeded_zeroCooldown_cooldownNotStarted() {
+        val event = newScreenEvent(id = 1L, cooldownMs = 0L)
+
+        cooldownsState.startCooldownIfNeeded(event, System.currentTimeMillis())
+
+        assertFalse(cooldownsState.isCooldownRunning(event))
+    }
+
+    @Test
+    fun startCooldownIfNeeded_negativeCooldown_cooldownNotStarted() {
+        val event = newScreenEvent(id = 1L, cooldownMs = -1L)
+
+        cooldownsState.startCooldownIfNeeded(event, System.currentTimeMillis())
+
+        assertFalse(cooldownsState.isCooldownRunning(event))
+    }
+
+    @Test
+    fun startCooldownIfNeeded_positiveCooldown_cooldownIsRunning() {
+        val event = newScreenEvent(id = 1L, cooldownMs = 10_000L)
+
+        cooldownsState.startCooldownIfNeeded(event, System.currentTimeMillis())
+
+        assertTrue(cooldownsState.isCooldownRunning(event))
+    }
+
+    @Test
+    fun startCooldownIfNeeded_calledTwice_cooldownRestarts() {
+        val event = newScreenEvent(id = 1L, cooldownMs = 1L)
+
+        cooldownsState.startCooldownIfNeeded(event, System.currentTimeMillis())
+        Thread.sleep(10L) // let first cooldown expire
+
+        // Restart before checking — should be running again
+        val eventWithLongCooldown = newScreenEvent(id = 1L, cooldownMs = 10_000L)
+        cooldownsState.startCooldownIfNeeded(eventWithLongCooldown, System.currentTimeMillis())
+
+        assertTrue(cooldownsState.isCooldownRunning(eventWithLongCooldown))
+    }
+
+    @Test
+    fun startCooldownIfNeeded_startTimeInPast_elapsedTimeDeducted() {
+        val event = newScreenEvent(id = 1L, cooldownMs = 1_000L)
+
+        cooldownsState.startCooldownIfNeeded(event, System.currentTimeMillis() - 2_000L)
+
+        assertFalse(cooldownsState.isCooldownRunning(event))
+    }
+
+    @Test
+    fun startCooldownIfNeeded_startTimeInPast_remainingCooldownRunning() {
+        val event = newScreenEvent(id = 1L, cooldownMs = 10_000L)
+
+        cooldownsState.startCooldownIfNeeded(event, System.currentTimeMillis() - 2_000L)
+
+        assertTrue(cooldownsState.isCooldownRunning(event))
+    }
+
+    @Test
+    fun startCooldownIfNeeded_zeroCooldown_minDuration_cooldownIsRunning() {
+        val event = newScreenEvent(id = 1L, cooldownMs = 0L)
+
+        cooldownsState.startCooldownIfNeeded(event, System.currentTimeMillis(), minDurationMs = 10_000L)
+
+        assertTrue(cooldownsState.isCooldownRunning(event))
+    }
+
+    @Test
+    fun startCooldownIfNeeded_minDurationShorterThanEventCooldown_eventCooldownApplied() {
+        val event = newScreenEvent(id = 1L, cooldownMs = 10_000L)
+
+        cooldownsState.startCooldownIfNeeded(event, System.currentTimeMillis() - 2_000L, minDurationMs = 1_000L)
+
+        assertTrue(cooldownsState.isCooldownRunning(event))
+    }
+
+    @Test
+    fun startCooldownIfNeeded_minDurationElapsed_cooldownNotRunning() {
+        val event = newScreenEvent(id = 1L, cooldownMs = 0L)
+
+        cooldownsState.startCooldownIfNeeded(event, System.currentTimeMillis() - 2_000L, minDurationMs = 1_000L)
+
+        assertFalse(cooldownsState.isCooldownRunning(event))
+    }
+
+    @Test
+    fun startCooldownIfNeeded_triggerEvent_onlyMinDurationApplied() {
+        val event = TriggerEvent(
+            id = Identifier(databaseId = 2L),
+            scenarioId = Identifier(databaseId = 1L),
+            name = "TestTrigger",
+            conditionOperator = AND,
+            actions = emptyList(),
+            conditions = emptyList(),
+        )
+
+        cooldownsState.startCooldownIfNeeded(event, System.currentTimeMillis())
+        assertFalse(cooldownsState.isCooldownRunning(event))
+
+        cooldownsState.startCooldownIfNeeded(event, System.currentTimeMillis(), minDurationMs = 10_000L)
+        assertTrue(cooldownsState.isCooldownRunning(event))
+    }
+
+    // ---- isCooldownRunning ----
+
+    @Test
+    fun isCooldownRunning_noCooldownStarted_false() {
+        val event = newScreenEvent(id = 1L)
+
+        assertFalse(cooldownsState.isCooldownRunning(event))
+    }
+
+    @Test
+    fun isCooldownRunning_cooldownRunning_true() {
+        val event = newScreenEvent(id = 1L, cooldownMs = 10_000L)
+        cooldownsState.startCooldownIfNeeded(event, System.currentTimeMillis())
+
+        assertTrue(cooldownsState.isCooldownRunning(event))
+    }
+
+    @Test
+    fun isCooldownRunning_cooldownExpired_false() {
+        val event = newScreenEvent(id = 1L, cooldownMs = 1L)
+        cooldownsState.startCooldownIfNeeded(event, System.currentTimeMillis())
+
+        Thread.sleep(10L)
+
+        assertFalse(cooldownsState.isCooldownRunning(event))
+    }
+
+    @Test
+    fun isCooldownRunning_cooldownExpired_subsequentCallAlsoFalse() {
+        val event = newScreenEvent(id = 1L, cooldownMs = 1L)
+        cooldownsState.startCooldownIfNeeded(event, System.currentTimeMillis())
+        Thread.sleep(10L)
+        cooldownsState.isCooldownRunning(event) // triggers internal cleanup
+
+        assertFalse(cooldownsState.isCooldownRunning(event))
+    }
+
+    @Test
+    fun isCooldownRunning_twoEvents_checkedIndependently() {
+        val eventRunning = newScreenEvent(id = 1L, cooldownMs = 10_000L)
+        val eventNotRunning = newScreenEvent(id = 2L, cooldownMs = 0L)
+        cooldownsState.startCooldownIfNeeded(eventRunning, System.currentTimeMillis())
+        cooldownsState.startCooldownIfNeeded(eventNotRunning, System.currentTimeMillis())
+
+        assertTrue(cooldownsState.isCooldownRunning(eventRunning))
+        assertFalse(cooldownsState.isCooldownRunning(eventNotRunning))
+    }
+
+    // ---- removeCooldown ----
+
+    @Test
+    fun removeCooldown_runningCooldown_cooldownStopped() {
+        val event = newScreenEvent(id = 1L, cooldownMs = 10_000L)
+        cooldownsState.startCooldownIfNeeded(event, System.currentTimeMillis())
+
+        cooldownsState.removeCooldown(event)
+
+        assertFalse(cooldownsState.isCooldownRunning(event))
+    }
+
+    @Test
+    fun removeCooldown_noCooldownStarted_noError() {
+        val event = newScreenEvent(id = 1L)
+
+        cooldownsState.removeCooldown(event)
+
+        assertFalse(cooldownsState.isCooldownRunning(event))
+    }
+
+    @Test
+    fun removeCooldown_onlyRemovesTargetEvent() {
+        val event1 = newScreenEvent(id = 1L, cooldownMs = 10_000L)
+        val event2 = newScreenEvent(id = 2L, cooldownMs = 10_000L)
+        cooldownsState.startCooldownIfNeeded(event1, System.currentTimeMillis())
+        cooldownsState.startCooldownIfNeeded(event2, System.currentTimeMillis())
+
+        cooldownsState.removeCooldown(event1)
+
+        assertFalse(cooldownsState.isCooldownRunning(event1))
+        assertTrue(cooldownsState.isCooldownRunning(event2))
+    }
+}

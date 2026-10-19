@@ -1,0 +1,29 @@
+name: 问题报告
+description: 报告 Yuklick 的可复现问题
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "请先移除截图、日志和场景中的账号、消息、设备序列号及本机路径。不要提交密钥或完整备份。"
+  - type: input
+    id: version
+    attributes:
+      label: Yuklick 版本及安装来源
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Android 版本与设备型号（无需序列号）
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤、预期结果与实际结果
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 脱敏后的截图或最小日志（可选）
