@@ -310,7 +310,7 @@
     <string name="message_desc_gesture_on_condition_or">第一个检测到的条件的位置</string>
     <string name="message_title_gesture_on_condition_error">未选择条件</string>
     <string name="message_desc_gesture_on_condition_error">需要选择一个条件来执行手势</string>
-    <string name="button_title_condition_pick">选择条件</string>
+    <string name="button_title_condition_pick">点击检测中心</string>
     <string name="button_title_condition_remove">移除条件</string>
     <string name="field_gesture_release_when_title">松开时机</string>
     <string name="field_gesture_release_when_item_now">立即</string>

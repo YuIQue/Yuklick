@@ -223,4 +223,4 @@ class ImageSelectorView(
  * Final results will not always be the size, as it is relative to the capture viewport, but we just don't want a
  * null result.
  */
-private const val CAPTURE_MINIMUM_SIZE = 50f
+private const val CAPTURE_MINIMUM_SIZE = 1f

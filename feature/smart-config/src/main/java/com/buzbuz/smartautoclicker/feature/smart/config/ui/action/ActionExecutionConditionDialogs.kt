@@ -48,10 +48,10 @@ private fun showActionExecutionConditionSelection(
     val selected = selectedIds.toMutableSet()
     MaterialAlertDialogBuilder(context)
         .setTitle(R.string.field_action_condition)
-        .setMultiChoiceItems(
+        .setCheckedActionItems(
             conditions.map { it.name }.toTypedArray(),
             conditions.map { it.id in selected }.toBooleanArray(),
-        ) { _, index, checked ->
+        ) { index, checked ->
             if (checked) selected.add(conditions[index].id) else selected.remove(conditions[index].id)
         }
         .setPositiveButton(R.string.action_condition_and) { _, _ ->

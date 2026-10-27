@@ -45,7 +45,7 @@ void TemplateMatchingResult::invalidateCurrentResult(const cv::Mat& condition, c
     cv::rectangle(
             matchingResults,
             cv::Rect(maxLoc.x, maxLoc.y,  condition.cols,condition.rows),
-            cv::Scalar(0),
+            cv::Scalar(-1),
             CV_FILLED);
 }
 

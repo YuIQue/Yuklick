@@ -86,7 +86,7 @@ internal object FingerResolverTestData {
         ConditionsResults().apply {
             results.forEach { (condition, position) ->
                 addResult(
-                    conditionId = condition.id.databaseId,
+                    conditionId = condition.getValidId(),
                     result = ProcessedConditionResult.Screen(
                         isFulfilled = true,
                         haveBeenDetected = true,

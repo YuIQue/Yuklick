@@ -209,4 +209,4 @@ data class DetectionTypeState(
 )
 
 /** The maximum threshold value selectable by the user. */
-const val MAX_THRESHOLD = 20f
+const val MAX_THRESHOLD = 100f

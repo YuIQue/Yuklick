@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="workflow_repeat_title">Repeat workflow</string>
+    <string name="workflow_repeat_off">Stop after one round</string>
+    <string name="workflow_repeat_on">Repeat while enabled; pause or stop at any time</string>
+</resources>

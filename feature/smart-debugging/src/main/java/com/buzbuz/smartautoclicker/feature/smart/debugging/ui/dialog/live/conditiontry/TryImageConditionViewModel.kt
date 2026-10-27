@@ -104,4 +104,4 @@ class TryImageConditionViewModel @Inject constructor(
 /** The minimum threshold value selectable by the user. */
 internal const val MIN_THRESHOLD = 0f
 /** The maximum threshold value selectable by the user. */
-internal const val MAX_THRESHOLD = 20f
+internal const val MAX_THRESHOLD = 100f

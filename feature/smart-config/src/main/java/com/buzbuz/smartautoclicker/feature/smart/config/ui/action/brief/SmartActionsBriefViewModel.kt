@@ -299,9 +299,15 @@ class SmartActionsBriefViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                smartProcessingRepository.tryActions(context, scenario, event, listOf(actions[index]))
-                smartProcessingRepository.detectionState.first { it != DetectionState.DETECTING }
+                com.buzbuz.smartautoclicker.core.common.actions.gesture.GesturePreview.enabled = true
+                smartProcessingRepository.tryActions(context, scenario, event.copy(conditions = editionRepository.editionState.getEditedEventConditions<ScreenCondition>().orEmpty()), listOf(actions[index]))
+                val completed = withTimeoutOrNull(60_000L) {
+                    smartProcessingRepository.detectionState.first { it == DetectionState.DETECTING }
+                    smartProcessingRepository.detectionState.first { it != DetectionState.DETECTING }
+                }
+                if (completed == null) smartProcessingRepository.stopDetection()
             } finally {
+                com.buzbuz.smartautoclicker.core.common.actions.gesture.GesturePreview.enabled = false
                 onFinished()
             }
         }
@@ -315,9 +321,15 @@ class SmartActionsBriefViewModel @Inject constructor(
         if (index !in actions.indices) return false
         viewModelScope.launch {
             try {
-                smartProcessingRepository.tryActions(context, scenario, event, actions.drop(index))
-                smartProcessingRepository.detectionState.first { it != DetectionState.DETECTING }
+                com.buzbuz.smartautoclicker.core.common.actions.gesture.GesturePreview.enabled = true
+                smartProcessingRepository.tryActions(context, scenario, event.copy(conditions = editionRepository.editionState.getEditedEventConditions<ScreenCondition>().orEmpty()), actions.drop(index))
+                val completed = withTimeoutOrNull(60_000L) {
+                    smartProcessingRepository.detectionState.first { it == DetectionState.DETECTING }
+                    smartProcessingRepository.detectionState.first { it != DetectionState.DETECTING }
+                }
+                if (completed == null) smartProcessingRepository.stopDetection()
             } finally {
+                com.buzbuz.smartautoclicker.core.common.actions.gesture.GesturePreview.enabled = false
                 onFinished()
             }
         }

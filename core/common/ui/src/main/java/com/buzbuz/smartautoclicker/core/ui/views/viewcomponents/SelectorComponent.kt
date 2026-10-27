@@ -175,7 +175,9 @@ internal class SelectorComponent(
 
             intersect(maxArea)
 
-            toRect()
+            // Preserve a non-empty source pixel even when zoom rounds a tiny selection down.
+            Rect(kotlin.math.floor(left).toInt(), kotlin.math.floor(top).toInt(),
+                kotlin.math.ceil(right).toInt(), kotlin.math.ceil(bottom).toInt())
         }
     }
 
@@ -207,8 +209,8 @@ internal class SelectorComponent(
                 x = minimumArea.width()
                 y = minimumArea.height()
             } else {
-                x = maxArea.width() * SELECTOR_MINIMUM_WIDTH_RATIO
-                y = maxArea.height() * SELECTOR_MINIMUM_HEIGHT_RATIO
+                x = 2 * selectorAreaOffset + 1f
+                y = 2 * selectorAreaOffset + 1f
             }
         }
 

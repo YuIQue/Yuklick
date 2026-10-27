@@ -79,6 +79,12 @@
                     tools:visibility="gone"/>
 
                 <ImageButton
+                    android:id="@+id/btn_minimize"
+                    style="@style/AppTheme.Overlay.FloatingMenu.Buttons"
+                    android:src="@android:drawable/arrow_down_float"
+                    android:contentDescription="@string/overlay_minimize" />
+
+                <ImageButton
                     android:id="@+id/btn_move"
                     style="@style/AppTheme.Overlay.FloatingMenu.Buttons"
                     android:src="@drawable/ic_move"

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="workflow_repeat_title">循环状态</string>
+    <string name="workflow_repeat_off">执行一轮后停止</string>
+    <string name="workflow_repeat_on">启用期间持续循环，可随时暂停或停止</string>
+</resources>

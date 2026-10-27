@@ -568,6 +568,16 @@ abstract class OverlayMenu(
     }
 
 
+    /** Dock the compact menu to the nearest screen edge after resizing. */
+    protected fun dockMenuToEdge() {
+        menuLayout.post {
+            val screen = displayConfigManager.displayConfig.sizePx
+            val x = if (menuLayoutParams.x + menuLayout.width / 2 < screen.x / 2) 0
+                else screen.x - menuLayout.width
+            updateMenuPosition(Point(x, menuLayoutParams.y))
+        }
+    }
+
     /** Safe setter for the position of the overlay menu ensuring it will not be displayed outside the screen. */
     private fun updateMenuPosition(position: Point) {
         val displaySize = displayConfigManager.displayConfig.sizePx

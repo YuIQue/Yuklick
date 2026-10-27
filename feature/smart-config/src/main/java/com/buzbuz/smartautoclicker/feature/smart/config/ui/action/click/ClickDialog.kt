@@ -298,8 +298,7 @@ class ClickDialog(
             return
         }
 
-        if (viewModel.shouldSelectCondition()) showConditionSelector()
-        else viewModel.setClickOnDetectedCondition()
+        showConditionSelector()
     }
 
     private fun showPositionSelector() {

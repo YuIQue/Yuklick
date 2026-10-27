@@ -26,6 +26,7 @@ import com.buzbuz.smartautoclicker.feature.smart.config.domain.EditionRepository
 import com.buzbuz.smartautoclicker.core.common.tutorial.domain.MonitoredViewsManager
 import com.buzbuz.smartautoclicker.core.common.tutorial.domain.model.monitoring.MonitoredViewType
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
+import com.buzbuz.smartautoclicker.core.domain.model.event.Event
 
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.filterNotNull
@@ -85,13 +86,13 @@ class ScenarioDialogViewModel @Inject constructor(
         editedScenarioHasChanged.value
 
     fun isSequentialWorkflow(): Boolean =
-        (editionRepository.editionState.getAllEditedEvents().singleOrNull() as? ScreenEvent)?.isSequential == true
+        shouldHideTriggerTab(editionRepository.editionState.getAllEditedEvents())
 
-    fun monitorViews(createEventButton: View, saveButton: View, triggerEventTab: View) {
+    fun monitorViews(createEventButton: View, saveButton: View, triggerEventTab: View?) {
         monitoredViewsManager.apply {
             attach(MonitoredViewType.SCENARIO_DIALOG_BUTTON_CREATE_EVENT, createEventButton)
             attach(MonitoredViewType.SCENARIO_DIALOG_BUTTON_SAVE, saveButton)
-            attach(MonitoredViewType.SCENARIO_DIALOG_TRIGGER_EVENT_TAB, triggerEventTab)
+            triggerEventTab?.let { attach(MonitoredViewType.SCENARIO_DIALOG_TRIGGER_EVENT_TAB, it) }
         }
     }
 
@@ -103,3 +104,7 @@ class ScenarioDialogViewModel @Inject constructor(
         }
     }
 }
+
+/** Event count must not change the available editor pages after saving/reopening. */
+internal fun shouldHideTriggerTab(events: List<Event>): Boolean =
+    events.isNotEmpty() && events.all { it is ScreenEvent && it.isSequential }

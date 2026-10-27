@@ -49,11 +49,10 @@ internal fun Position.toPositionUiState(editionRepository: EditionRepository): U
                 .getEditedEventConditions<ScreenCondition>() ?: emptyList()
             val isAnd = editionRepository.editionState.getEditedEvent()?.conditionOperator == AND
             val resolvedCondition =
-                if (isAnd) conditionId?.let { id -> screenConditions.find { it.id == id } }
-                else null
+                conditionId?.let { id -> screenConditions.find { it.id == id } }
 
             UiGesturePosition.Condition(
-                inError = screenConditions.isEmpty() || (isAnd && resolvedCondition == null),
+                inError = screenConditions.isEmpty() || ((isAnd || conditionId != null) && resolvedCondition == null),
                 condition = resolvedCondition,
             )
         }

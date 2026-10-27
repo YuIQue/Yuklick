@@ -54,6 +54,7 @@ class TryEventOverlayMenu(
     /** Adapter upon actions being executed while in live debugging. */
     private val tryEventActionsAdapter: TryEventActionsAdapter = TryEventActionsAdapter()
 
+    private var minimized = false
     private lateinit var viewBinding: OverlayTryEventMenuBinding
 
     override fun onCreateMenu(layoutInflater: LayoutInflater): ViewGroup {
@@ -89,6 +90,17 @@ class TryEventOverlayMenu(
 
     override fun onMenuItemClicked(viewId: Int) {
         when (viewId) {
+            R.id.btn_minimize -> {
+                minimized = !minimized
+                setMenuItemsVisibility(mapOf(
+                    viewBinding.btnBack to !minimized,
+                    viewBinding.btnHideOverlay to !minimized,
+                    viewBinding.btnMove to !minimized,
+                    viewBinding.layoutDebug to !minimized,
+                ))
+                viewBinding.btnMinimize.setImageResource(if (minimized) R.drawable.ic_visible_on else android.R.drawable.arrow_down_float)
+                dockMenuToEdge()
+            }
             R.id.btn_back -> {
                 viewModel.stopTry()
                 back()

@@ -283,7 +283,8 @@ internal class ScenarioProcessor(
 
         executeEventActions(event, results, listOf(action))
         delay(action.waitAfterMs.coerceAtLeast(0L))
-        sequentialStepByEventId[event.id.databaseId] = step + 1
+        sequentialStepByEventId[event.id.databaseId] =
+            if (event.keepDetecting && step + 1 >= event.actions.size) 0 else step + 1
         val enabledEvents = processingState.getScreenEvents().filter {
             processingState.isEventEnabled(it.id.databaseId)
         }

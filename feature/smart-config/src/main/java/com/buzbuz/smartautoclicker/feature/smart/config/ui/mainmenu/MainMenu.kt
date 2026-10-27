@@ -96,6 +96,8 @@ class MainMenu(private val onStopClicked: () -> Unit) : OverlayMenu() {
     private val debugLiveActionsAdapter: LiveDebuggingActionsAdapter = LiveDebuggingActionsAdapter()
 
     /** The ui state currently displayed. Null if none has been applied since the menu was started. */
+    private var minimized = false
+
     private var currentUiState: MainMenuUiState? = null
 
     /** The coroutine job for the observable used in debug mode. Null when not in debug mode. */
@@ -193,6 +195,7 @@ class MainMenu(private val onStopClicked: () -> Unit) : OverlayMenu() {
 
     override fun onMenuItemClicked(viewId: Int) {
         when (viewId) {
+            R.id.btn_minimize -> { minimized = !minimized; applyCompactMenu(); dockMenuToEdge() }
             R.id.btn_play -> onPlayPauseClicked()
             R.id.btn_click_list -> onConfigureClicked()
             R.id.btn_stop -> onStopClicked()
@@ -287,7 +290,21 @@ class MainMenu(private val onStopClicked: () -> Unit) : OverlayMenu() {
             else -> setMenuItemVisibility(viewBinding.layoutDebug, uiState.isDebugPanelVisible)
         }
 
+        applyCompactMenu()
         updateDebugValuesObservation(uiState.isDebugPanelVisible)
+    }
+
+    private fun applyCompactMenu() {
+        val state = currentUiState ?: return
+        setMenuItemsVisibility(mapOf(
+            viewBinding.btnPlay to !minimized,
+            viewBinding.btnStop to (!minimized && !state.isDetecting),
+            viewBinding.btnClickList to (!minimized && !state.isDetecting),
+            viewBinding.btnMove to !minimized,
+            viewBinding.layoutDebug to (!minimized && state.isDebugPanelVisible),
+        ))
+        viewBinding.btnMinimize.setImageResource(if (minimized) R.drawable.ic_visible_on else android.R.drawable.arrow_down_float)
+        viewBinding.errorBadge.isVisible = !minimized && state.isProjectionErrorVisible
     }
 
     private fun updateVisibilityForPaywall(isHidden: Boolean) {

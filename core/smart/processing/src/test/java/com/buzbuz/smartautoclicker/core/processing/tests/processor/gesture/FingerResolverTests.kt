@@ -229,4 +229,23 @@ class FingerResolverTests {
 
         assertNoFinger(resolve(gesture, newTriggerEvent(), null))
     }
+    @Test
+    fun resolve_unsavedCondition_usesTemporaryIdentifier() {
+        val id = Identifier(id = -42L, asTemporary = true)
+        val condition = newCondition(42L).copy(id = id)
+        val event = newScreenEvent(AND, listOf(condition))
+        val results = newConditionsResults(condition to Point(150, 250))
+        val gesture = newGesture(newFinger(0L, press(Position.Condition(id)), release()))
+        assertPositions(resolve(gesture, event, results), Point(150, 250))
+    }
+
+    @Test
+    fun resolve_explicitConditionUnderOr_usesSelectedCenter() {
+        val first = newCondition(42L)
+        val selected = newCondition(43L)
+        val results = newConditionsResults(first to Point(1, 1), selected to Point(150, 250))
+        val gesture = newGesture(newFinger(0L, press(conditionPosition(43L)), release()))
+        assertPositions(resolve(gesture, newScreenEvent(OR, listOf(first, selected)), results), Point(150, 250))
+    }
+
 }

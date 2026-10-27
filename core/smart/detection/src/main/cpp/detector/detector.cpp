@@ -50,17 +50,26 @@ TemplateMatchingResult* Detector::detectImage(
             targetConditionWidth,
             targetConditionHeight);
 
-    // Check if the condition fits in the detection area
-    if (!TemplateMatcher::isRoiValidForMatching(screenImage->getRoi(), conditionImage->getRoi(), roi)) {
-        return templateMatcher->getMatchingResults();
+    // Exact size first, then nearby scales for UI density/zoom changes. Keep color
+    // verification so visually different buttons are not treated as semantic matches.
+    TemplateMatchingResult best;
+    for (double scale : {1.0, 0.9, 1.1, 0.8, 1.2}) {
+        ConditionImage scaled;
+        const ConditionImage* candidate = conditionImage.get();
+        if (scale != 1.0) {
+            scaled.processNewData(std::make_unique<cv::Mat>(conditionImage->getColorMat()),
+                std::max(1, static_cast<int>(targetConditionWidth * scale)),
+                std::max(1, static_cast<int>(targetConditionHeight * scale)));
+            candidate = &scaled;
+        }
+        if (!TemplateMatcher::isRoiValidForMatching(screenImage->getRoi(), candidate->getRoi(), roi)) continue;
+        templateMatcher->reset();
+        templateMatcher->matchTemplate(*screenImage, *candidate, roi, threshold);
+        const auto result = *templateMatcher->getMatchingResults();
+        if (result.isDetected()) return templateMatcher->getMatchingResults();
+        if (result.getResultConfidence() > best.getResultConfidence()) best = result;
     }
-
-    // Apply template matching and get global results
-    templateMatcher->matchTemplate(
-            *screenImage,
-            *conditionImage,
-            roi,
-            threshold);
+    *templateMatcher->getMatchingResults() = best;
 
     return templateMatcher->getMatchingResults();
 }

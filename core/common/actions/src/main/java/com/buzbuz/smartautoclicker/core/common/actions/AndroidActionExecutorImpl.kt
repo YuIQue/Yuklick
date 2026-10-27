@@ -23,6 +23,7 @@ import android.util.AndroidRuntimeException
 import android.util.Log
 
 import com.buzbuz.smartautoclicker.core.common.actions.gesture.GestureExecutor
+import com.buzbuz.smartautoclicker.core.common.actions.gesture.GesturePreview
 import com.buzbuz.smartautoclicker.core.common.actions.model.ActionNotificationRequest
 import com.buzbuz.smartautoclicker.core.common.actions.model.BuiltGesture
 import com.buzbuz.smartautoclicker.core.common.actions.model.HeldPointer
@@ -79,7 +80,9 @@ internal class AndroidActionExecutorImpl @Inject constructor(
     override suspend fun dispatchBuiltGesture(gesture: BuiltGesture) {
         val service = accessibilityService ?: return
 
-        if (!gestureExecutor.dispatchBuiltGesture(service, gesture)) {
+        if (!GesturePreview.display(service, gesture) {
+                gestureExecutor.dispatchBuiltGesture(service, gesture)
+            }) {
             Log.w(TAG, "System did not execute the gesture properly, delaying processing to avoid spamming slow system")
             delay(500.milliseconds)
         }

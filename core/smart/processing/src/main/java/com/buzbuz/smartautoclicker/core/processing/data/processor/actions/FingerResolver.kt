@@ -208,8 +208,8 @@ internal class FingerResolver(
 
         val condId = condition.conditionId
         val result = when {
-            event.conditionOperator == AND && condId != null -> {
-                val condResult = results?.getScreenConditionResult(condId.databaseId)
+            condId != null -> {
+                val condResult = results?.getAllScreenConditionsResults()?.find { it.condition.id == condId && it.haveBeenDetected }
                 if (condResult == null) {
                     Log.d(TAG, "Cannot resolve position for $condId, condition has not been processed")
                     return false

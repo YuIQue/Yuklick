@@ -139,9 +139,12 @@ class EventDialog(
         }
 
         fieldKeepDetecting.apply {
-            setTitle(context.resources.getString(R.string.field_event_keep_detecting_title))
+            setTitle(context.resources.getString(if (viewModel.isConfiguringSequentialWorkflow()) R.string.workflow_repeat_title else R.string.field_event_keep_detecting_title))
             setupDescriptions(
-                listOf(
+                if (viewModel.isConfiguringSequentialWorkflow()) listOf(
+                    context.getString(R.string.workflow_repeat_off),
+                    context.getString(R.string.workflow_repeat_on),
+                ) else listOf(
                     context.getString(R.string.field_event_keep_detecting_desc_disabled),
                     context.getString(R.string.field_event_keep_detecting_desc_enabled),
                 )
@@ -350,10 +353,10 @@ class EventDialog(
     private fun updateScreenEventUiState(uiState: EventDialogUiState.ScreenEvent) {
         viewBinding.apply {
             fieldConditionsOperator.root.visibility = if (uiState.isSequential) View.GONE else View.VISIBLE
-            fieldKeepDetecting.root.visibility = if (uiState.isSequential) View.GONE else View.VISIBLE
+            fieldKeepDetecting.root.visibility = View.VISIBLE
             cooldownLayout.visibility = if (uiState.isSequential) View.GONE else View.VISIBLE
             dividerCooldown.visibility = if (uiState.isSequential) View.GONE else View.VISIBLE
-            dividerKeepDetecting.visibility = if (uiState.isSequential) View.GONE else View.VISIBLE
+            dividerKeepDetecting.visibility = View.VISIBLE
             cardEventTest.visibility = View.VISIBLE
 
             fieldKeepDetecting.apply {

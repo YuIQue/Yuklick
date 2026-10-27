@@ -3,6 +3,9 @@ package com.buzbuz.smartautoclicker.feature.smart.config.ui.action
 
 import android.app.Application
 import android.os.Looper
+import android.view.View
+import android.view.ViewGroup
+import com.google.android.material.checkbox.MaterialCheckBox
 import android.view.ContextThemeWrapper
 import android.view.WindowManager
 import androidx.appcompat.app.AlertDialog
@@ -40,9 +43,19 @@ class ActionExecutionConditionDialogsTest {
     }
 
     private fun choose(dialog: AlertDialog, index: Int) {
-        val list = dialog.listView
-        list.performItemClick(list.getChildAt(index), index, list.adapter.getItemId(index))
+        val boxes = checkBoxes(dialog.window!!.decorView)
+        if (boxes.isNotEmpty()) boxes[index].performClick()
+        else {
+            val list = dialog.listView
+            list.performItemClick(list.getChildAt(index), index, list.adapter.getItemId(index))
+        }
         shadowOf(Looper.getMainLooper()).idle()
+    }
+
+    private fun checkBoxes(view: View): List<MaterialCheckBox> = when (view) {
+        is MaterialCheckBox -> listOf(view)
+        is ViewGroup -> (0 until view.childCount).flatMap { checkBoxes(view.getChildAt(it)) }
+        else -> emptyList()
     }
 
     @Test fun selectMultipleConditionsAndSaveAnd() {
@@ -52,8 +65,8 @@ class ActionExecutionConditionDialogsTest {
             { items, logic -> saved = items; operator = logic }, {}, {})
         choose(latestDialog(), 0)
         val selection = latestDialog()
-        assertTrue(selection.listView.isItemChecked(0))
-        assertFalse(selection.listView.isItemChecked(1))
+        assertTrue(checkBoxes(selection.window!!.decorView)[0].isChecked)
+        assertFalse(checkBoxes(selection.window!!.decorView)[1].isChecked)
         choose(selection, 1)
         selection.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
         shadowOf(Looper.getMainLooper()).idle()

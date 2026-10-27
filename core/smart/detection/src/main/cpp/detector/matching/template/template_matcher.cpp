@@ -16,6 +16,8 @@
  */
 
 #include <opencv2/imgproc/imgproc.hpp>
+#include <cmath>
+#include <algorithm>
 #include <opencv2/imgproc/imgproc_c.h>
 
 #include "template_matcher.hpp"
@@ -79,11 +81,18 @@ void TemplateMatcher::matchTemplate(
 
     try {
         // Run OpenCv template matching
-        cv::matchTemplate(
-                screenCroppedGrayMat,
-                condition.getGrayMat(),
-                newResultsMat,
-                cv::TM_CCOEFF_NORMED);
+        cv::Scalar mean, deviation;
+        cv::meanStdDev(condition.getGrayMat(), mean, deviation);
+        if (deviation[0] < 1.0) {
+            // Normalized correlation is undefined for uniform/tiny templates.
+            cv::matchTemplate(screenCroppedGrayMat, condition.getGrayMat(),
+                              newResultsMat, cv::TM_SQDIFF);
+            newResultsMat = 1.0 - newResultsMat /
+                (condition.getGrayMat().total() * 255.0 * 255.0);
+        } else {
+            cv::matchTemplate(screenCroppedGrayMat, condition.getGrayMat(),
+                              newResultsMat, cv::TM_CCOEFF_NORMED);
+        }
     } catch (const cv::Exception& e) {
         LOGE("TemplateMatcher", "OpenCV Exception caught: %s", e.what());
         throw;
@@ -107,7 +116,7 @@ void TemplateMatcher::parseMatchingResult(
         cv::Mat& matchingResult
 ) {
 
-    while (!currentMatchingResult.isDetected()) {
+    for (int candidate = 0; candidate < 64 && !currentMatchingResult.isDetected(); ++candidate) {
 
         // Mark previous results as invalid, if any
         if (!currentMatchingResult.getResultArea().empty()) {
@@ -138,7 +147,8 @@ void TemplateMatcher::parseMatchingResult(
 }
 
 bool TemplateMatcher::isConfidenceValid(double confidence, int threshold) {
-    return confidence > ((100.0 - threshold) / 100.0);
+    return std::isfinite(confidence) && confidence >= 0.0 &&
+        confidence + 1e-6 >= ((100.0 - std::clamp(threshold, 0, 100)) / 100.0);
 }
 
 double TemplateMatcher::getColorDiff(const cv::Mat& hsvImage, const cv::Scalar& conditionHsvMean) {
